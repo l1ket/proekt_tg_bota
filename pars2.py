@@ -24,7 +24,7 @@ headers = {'Content-type': 'application/json',
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36 OPR/104.0.0.0 (Edition Yx GX)'
 }
 
-response_for_cook = session.post(link, data=data,headers=headers).cookies.get_dict()
+response_for_cook = session.post(link, data=data, headers=headers).cookies.get_dict()
 # print(response_for_cook)--------РАБОТАЕТ(передает куки для того чтобы продолжать работать в той же сесии)
 
 #ээ НУ КРЧ ТУТ ПЛОТНО ЗАШЛИ В ДНЕВНИК КАЙФАНУЛИ И ПОДУМАЛИ АЧЕ ДАЛЬШЕ ТО?
