@@ -18,8 +18,8 @@ data = json.dumps({
     "login": "DIzmestjev5f43",
     "password": "t9vMzoB&Tw"
 })
-headers = {'Content-type': 'application/json', 
-           'Content-Length': str(len(data)), 
+headers = {'Content-type': 'application/json',
+           'Content-Length': str(len(data)),
            'charset': 'utf-8',
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36 OPR/104.0.0.0 (Edition Yx GX)'
 }
@@ -27,7 +27,7 @@ headers = {'Content-type': 'application/json',
 response_for_cook = session.post(link, data=data, headers=headers).cookies.get_dict()
 # print(response_for_cook)--------РАБОТАЕТ(передает куки для того чтобы продолжать работать в той же сесии)
 
-#ээ НУ КРЧ ТУТ ПЛОТНО ЗАШЛИ В ДНЕВНИК КАЙФАНУЛИ И ПОДУМАЛИ АЧЕ ДАЛЬШЕ ТО?
+# ээ НУ КРЧ ТУТ ПЛОТНО ЗАШЛИ В ДНЕВНИК КАЙФАНУЛИ И ПОДУМАЛИ АЧЕ ДАЛЬШЕ ТО?
 # И ТУТ МЫ КАЙФУЕМ ОТ РОС РАЗРАБОВ(гении в одну страницу запихали почти все поэтому искать будет тяжело)
 response2 = requests.get(url='https://dnevnik.egov66.ru/api/students', cookies=response_for_cook)
 soup = BeautifulSoup(response2.text, 'lxml')
