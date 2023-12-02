@@ -11,6 +11,9 @@ import json
 
 # Данные для авторизации
 def get_cook(session):
+    """
+    Добавить потом получение данных логина и пароля от пользователя
+    """
     link = 'https://dnevnik.egov66.ru/api/auth/Auth/Login'  # Пока хост не сменят ссылка не меняется
     data = json.dumps({"login": "DIzmestjev5f43",
                        "password": "t9vMzoB&Tw"
