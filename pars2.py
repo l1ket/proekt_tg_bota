@@ -12,7 +12,7 @@ log = 'DIzmestjev5f43'
 passw = 't9vMzoB&Tw'
 
 
-def get_cook():
+def get_cook(log,passw):
     """
 
     Лутаем куки.
@@ -68,7 +68,6 @@ def find_itog_ocenki(response_for_cook, stid):
     studentId = нет
 
     """
-    # ПЛОТНО ИЩЕМ НАЗВАНИЯ ПРЕДМЕТОВ (СУКИ ВСЕ В JSON ОБЬЕКТ ОБЕРНУЛИ)
     response2 = requests.get(
         url=f'https://dnevnik.egov66.ru/api/estimate?schoolYear=2023&periodId=3666e57b-c830-42bb-a9ae-4332edf2020c&subjectId=00000000-0000-0000-0000-000000000000&studentId={stid}',
         cookies=response_for_cook)
@@ -86,9 +85,11 @@ def find_itog_ocenki(response_for_cook, stid):
     return print(itog)
 
 
-response_for_cook = get_cook()  # -------- РАБОТАЕТ (полчуаем куки)
+response_for_cook = get_cook(log, passw)  # -------- РАБОТАЕТ (полчуаем куки)
 stid = search_id(response_for_cook)
 find_itog_ocenki(response_for_cook, stid)  # Работает(уже нет)(починил)
+
+
 
 """
 
