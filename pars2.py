@@ -8,6 +8,7 @@
 import requests
 from bs4 import BeautifulSoup
 import json
+import re
 
 """
 
@@ -57,6 +58,7 @@ class ais_dnevnik:
         for stid in response_for_url_str:
             stid = stid['id']
         return stid
+    
     """
 
     так же у каждого предмета есть id
@@ -89,12 +91,47 @@ class ais_dnevnik:
             itog += str(f'{name_less}: {ocenka}\n')
         return print(itog)
 
+    def all_ocenki(self):
+        """
+
+        Передает все оценки в виде:\n
+        Предмет: оценка, оценка и т.д.
+
+        """
+        response2 = requests.get(
+            url=f'https://dnevnik.egov66.ru/api/estimate?schoolYear=2023&periodId=3666e57b-c830-42bb-a9ae-4332edf2020c&subjectId=00000000-0000-0000-0000-000000000000&studentId={stid}',
+            cookies=response_for_cook)
+        
+        soup = BeautifulSoup(response2.text, 'lxml')
+        dict_lessons = json.loads(soup.text)  # Преобразовал str в dict
+        find_lessons = dict_lessons['periodGradesTable']
+        find_lessons2 = find_lessons['disciplines']  # --- (type - list)
+        itog = 'Все оценки:\n'
+
+        for i in find_lessons2:
+            grade = i['grades']
+            lessson = i['name']
+            itog += f'{lessson}: '
+            for x in grade:
+                if x['grades'] == []:
+                    continue
+                else:
+                    ocenka = x['grades']
+                    itog += f'{ocenka}, '
+            itog += '\n'
+        itog2 = re.sub('\[', '', itog)
+        itog2 = re.sub('\]', '', itog2)
+        itog2 = re.sub('\'', '', itog2)
+
+        print(itog2)
+
 
 if __name__ == '__main__':
     ais = ais_dnevnik("DIzmestjev5f43", 't9vMzoB&Tw')
     response_for_cook = ais.get_cook()  # -------- РАБОТАЕТ (получаем куки)
     stid = ais.search_id(response_for_cook)
-    ais.find_itog_ocenki(response_for_cook, stid)  # Работает
+    # ais.find_itog_ocenki(response_for_cook, stid)  # Работает
+    ais.all_ocenki()
 
 """
 
