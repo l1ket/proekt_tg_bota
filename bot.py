@@ -15,15 +15,24 @@ async def main():
 
     # Если не указать storage, то по умолчанию всё равно будет MemoryStorage
     # Но явное лучше неявного =]
-    dp = Dispatcher(storage=MemoryStorage())
+    dp = Dispatcher(storage=MemoryStorage())  
     bot = Bot(token='6028764195:AAF1iMb6Vh_yYdJGnQsn73I3J1Vv4W-YoZc')
 
     dp.include_router(common.router)
     dp.include_router(getting_log_and_pass.router)
-    # сюда импортируйте ваш собственный роутер для напитков
 
+    await bot.delete_webhook(drop_pending_updates=True)  # Скипает все новые сообщения
     await dp.start_polling(bot)
 
 
 if __name__ == '__main__':
     asyncio.run(main())
+"""
+Конструкция 'если имя == мейн'
+используеться для того чтобы проверить является ли файл основным исполнителем,
+или его импортировали и используют.(это если простыми словами)
+если не использовать эту конструкцию то при импорте запустится весь код
+и это может помешать или вызвать какие-то ненужные сообщения.
+(хотя в данном файле ее можно было не вставлять т.к. я буду всегда запускать его как основной)
+
+"""

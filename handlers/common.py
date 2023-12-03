@@ -14,8 +14,17 @@ async def cmd_start(message: Message, state: FSMContext):
     await state.clear()
     await message.answer(
         text="Привет этот бот получет много информации из электронного дневника свердловской области!\n"
-        "Введите /give",
+        "Введите /help чтобы увидеть все команды.",
         reply_markup=ReplyKeyboardRemove()
+    )
+
+
+@router.message(Command(commands=["help"]))
+async def cmd_help(message: Message):
+    await message.answer(
+        text="Список доступных команд:\n"
+        "/give - передать данные от аккаунта АИС,\n"
+        "/give_allpars - запускает и выводит все данные из файла pars2.py",
     )
 
 
