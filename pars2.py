@@ -16,9 +16,36 @@ import time
 
 class ais_dnevnik:
     def __init__(self, log='', passw='', variant='Текущая неделя', **period) -> None:
+        self.login = log
         self.password = passw
         self.variant = variant
         self.dict_periods = period
+        self.status = 0
+        self.stid = 0
+        self.responce_for_cook = ''
+
+    def get_status(self):
+        """
+        Получаем статус для тг бота
+        """
+        link = 'https://dnevnik.egov66.ru/api/auth/Auth/Login'  # Пока хост не сменят ссылка не меняется(хост сменили в этот ноябрь, так что могут еще раз, хотя хост уже только на нашу область так что врятли)
+        data = json.dumps({"login": f"{self.login}",
+                        "password": f"{self.password}"})
+
+        headers = {'Content-type': 'application/json',
+                    'Content-Length': str(len(data)),
+                    'charset': 'utf-8',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36 OPR/104.0.0.0 (Edition Yx GX)'}
+
+        response_for_cook = requests.post(link, data=data,
+                                        headers=headers).status_code  # Проверка подошли данные или нет
+        if response_for_cook == 200:
+            self.status = 200
+        else:
+            print('ne norm')
+            print(self.login, self.password)
+            self.status == response_for_cook
+        return self.status
 
     def get_cook(self):
         """
@@ -39,15 +66,16 @@ class ais_dnevnik:
         response_for_cook = requests.post(link, data=data,
                                         headers=headers).status_code  # Проверка подошли данные или нет
         if response_for_cook == 200:
-            response_for_cook = requests.post(link, data=data,
+            self.response_for_cook = requests.post(link, data=data,
                                         headers=headers).cookies
+            return self.response_for_cook
         else:
             print('ne norm')
             print(self.login, self.password)
-            response_for_cook == False
-        return response_for_cook
+            self.status == response_for_cook
+            return self.status
 
-    def search_all_id(self, response_for_cook):
+    def search_all_id(self):
         """
         Оказывается в дневнике:\n
         у каждого ученика есть свой id\n
@@ -65,20 +93,20 @@ class ais_dnevnik:
 
         """
 
-        response_for_url = requests.get(url='https://dnevnik.egov66.ru/api/students', cookies=response_for_cook).text
+        response_for_url = requests.get(url='https://dnevnik.egov66.ru/api/students', cookies=self.response_for_cook).text
         response_for_url_str = json.loads(response_for_url)
         response_for_url_str = response_for_url_str['students']
         for stid in response_for_url_str:
-            stid = stid['id']
+            self.stid = stid['id']
 
-        response_for_period = requests.get(url='https://dnevnik.egov66.ru/api/estimate/periods?schoolYear=2023&studentId=b0ccd038-8de2-4c12-913b-a1dcfb9bcfef', cookies=response_for_cook).text
+        response_for_period = requests.get(url='https://dnevnik.egov66.ru/api/estimate/periods?schoolYear=2023&studentId=b0ccd038-8de2-4c12-913b-a1dcfb9bcfef', cookies=self.response_for_cook).text
         response_for_period_str = json.loads(response_for_period)
         response_for_period_str = response_for_period_str['periods']
         for i in response_for_period_str:
             name_period = i['name']
             id_period = i['id']
             self.dict_periods[name_period] = id_period
-        return stid
+        return self.stid
 
     def find_itog_ocenki(self):
         """
@@ -97,8 +125,8 @@ class ais_dnevnik:
         itog_ocenki_2 = 'Итоговые оценки за 2 полугодие(если стоит None или 0, то учителя еще не выставили):\n\n'
         perid = self.dict_periods['Итоговые оценки']
         response2 = requests.get(
-            url=f'https://dnevnik.egov66.ru/api/estimate?schoolYear=2023&periodId={perid}&subjectId=00000000-0000-0000-0000-000000000000&studentId={stid}',
-            cookies=response_for_cook)
+            url=f'https://dnevnik.egov66.ru/api/estimate?schoolYear=2023&periodId={perid}&subjectId=00000000-0000-0000-0000-000000000000&studentId={self.stid}',
+            cookies=self.response_for_cook)
         soup = BeautifulSoup(response2.text, 'lxml')
         dict_lessons = json.loads(soup.text)  # Преобразовал str в dict
         find_lessons = dict_lessons['yearGradesTable']
@@ -124,7 +152,8 @@ class ais_dnevnik:
                     itog_ocenki_2 += f'Средняя оценка: {sr_grade_2}\nИтоговая оценка: {final_grade_2}\n\n'
         print(itog_ocenki_1)
         print(itog_ocenki_2)
-        return itog_ocenki_1, itog_ocenki_2
+        itog_ocenki = f'{itog_ocenki_1}\n{itog_ocenki_2}'
+        return itog_ocenki
 
     def all_ocenki_pervoe_polygodie(self):
         """
@@ -135,8 +164,8 @@ class ais_dnevnik:
         """
         perid = self.dict_periods['1 Полугодие']
         response2 = requests.get(
-            url=f'https://dnevnik.egov66.ru/api/estimate?schoolYear=2023&periodId={perid}&subjectId=00000000-0000-0000-0000-000000000000&studentId={stid}',
-            cookies=response_for_cook)
+            url=f'https://dnevnik.egov66.ru/api/estimate?schoolYear=2023&periodId={perid}&subjectId=00000000-0000-0000-0000-000000000000&studentId={self.stid}',
+            cookies=self.response_for_cook)
 
         soup = BeautifulSoup(response2.text, 'lxml')
         dict_lessons = json.loads(soup.text)  # Преобразовал str в dict
@@ -171,8 +200,8 @@ class ais_dnevnik:
         """
         perid = self.dict_periods['Текущая неделя']
         week = ''
-        response = requests.get(url=f'https://dnevnik.egov66.ru/api/estimate?schoolYear=2023&periodId={perid}&subjectId=00000000-0000-0000-0000-000000000000&studentId={stid}',
-                                cookies=response_for_cook)
+        response = requests.get(url=f'https://dnevnik.egov66.ru/api/estimate?schoolYear=2023&periodId={perid}&subjectId=00000000-0000-0000-0000-000000000000&studentId={self.stid}',
+                                cookies=self.response_for_cook)
         soup = BeautifulSoup(response.text, 'lxml')
         dict_week = json.loads(soup.text)
         search_grades = dict_week['weekGradesTable']
@@ -189,7 +218,7 @@ class ais_dnevnik:
                 for y in grades:
                     for ocenka in y:
                         week += f'Урок: {lesson}\nДата: {date}\nНомер урока: {number_of_lesson}\nОценка: {ocenka}\n\n'
-        print(f'Все оценки за неделю.\n\n{week}')
+        print(f'Все оценки за неделю (если пусто значит на неделе оценок нет).\n\n{week}')
         return week
 
     def select_variant(self):
@@ -198,19 +227,23 @@ class ais_dnevnik:
         По умолчанию стоит: Текущая неделя
         """
         if self.variant == 'Текущая неделя':
-            ais.this_week()
+            ais_dnevnik.this_week(self)
         elif self.variant == '1 Полугодие':
-            ais.all_ocenki_pervoe_polygodie()
+            ais_dnevnik.all_ocenki_pervoe_polygodie(self)
         elif self.variant == '2 Полугодие':
             pass
         elif self.variant == 'Итоговые оценки':
-            ais.find_itog_ocenki()
+            itog = ais_dnevnik.find_itog_ocenki(self)
+            return itog
+        """
+        Функия работает(доделать остальные функции так же как 'Итоговые оценки')
+        """
 
 
 if __name__ == '__main__':
     ais = ais_dnevnik("DIzmestjev5f43", 't9vMzoB&Tw', 'Итоговые оценки')
     response_for_cook = ais.get_cook()  # -------- РАБОТАЕТ (получаем куки)
-    stid = ais.search_all_id(response_for_cook)
+    stid = ais.search_all_id()
     ais.select_variant()
 
 """

@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import sqlite3
 
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
@@ -13,10 +14,25 @@ async def main():
         format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
     )
 
+    connection = sqlite3.connect('users_data.db')
+    cursor = connection.cursor()
+
+    # Создаем таблицу Users
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS Users (
+    id INTEGER PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    login_user TEXT NOT NULL,
+    password_user TEXT NOT NULL,
+    user_cookie TEXT NOT NULL
+    )
+    ''')
+    connection.commit()
+    connection.close()
     # Если не указать storage, то по умолчанию всё равно будет MemoryStorage
     # Но явное лучше неявного =]
     dp = Dispatcher(storage=MemoryStorage())  
-    bot = Bot(token='')
+    bot = Bot(token='6028764195:AAF1iMb6Vh_yYdJGnQsn73I3J1Vv4W-YoZc')
 
     dp.include_router(common.router)
     dp.include_router(getting_log_and_pass.router)
@@ -27,6 +43,7 @@ async def main():
 
 if __name__ == '__main__':
     asyncio.run(main())
+
 """
 Конструкция 'если имя == мейн'
 используеться для того чтобы проверить является ли файл основным исполнителем,
