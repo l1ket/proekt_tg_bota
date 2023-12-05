@@ -1,6 +1,6 @@
 # import asyncio
 import sqlite3
-from aiogram import Router  # , F
+from aiogram import Router, F
 from aiogram.filters import Command  # , StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
@@ -22,9 +22,10 @@ class get_data(StatesGroup):
 
 
 @router.message(Command("give"))
+@router.message(F.text.lower() == "передать логин и пароль")
 async def taking_log(message: Message, state: FSMContext):
     await message.answer(
-        text="Введите логин.",
+        text="Введите логин.", reply_markup=ReplyKeyboardRemove()
         )
     await state.set_state(get_data.get_log)
 
@@ -84,6 +85,7 @@ async def check_stasus(login, password):
 
 # Переименовать
 @router.message(Command(commands=["give_allpars"]))
+@router.message(F.text.lower() == "итоговые оценки")
 async def start_pars(message: Message):
     users_id = message.from_user.id
     results = await check_users_in_table(users_id)
@@ -93,10 +95,57 @@ async def start_pars(message: Message):
     int_results = int(results)
     if int_results == users_id:
         await message.answer(text='Запуск парсера...')
-        text = await parsing(users_id)
+        text = await parsing_itog(users_id)
         await message.reply(text=f'{text}')
     else:
         await message.answer(text='Ошибка:\nВы еще не передали ваши данные.')
+
+
+# Переименовать
+@router.message(Command(commands=["this_week"]))
+@router.message(F.text.lower() == "эта неделя")
+async def pars_week(message: Message):
+    users_id = message.from_user.id
+    results = await check_users_in_table(users_id)
+    """
+    Тут жоская ловушка results == str
+    """
+    int_results = int(results)
+    if int_results == users_id:
+        await message.answer(text='Запуск парсера...')
+        text = await pars_this_week(users_id)
+        await message.reply(text=f'{text}')
+    else:
+        await message.answer(text='Ошибка:\nВы еще не передали ваши данные.')
+
+
+# Переименовать
+@router.message(Command(commands=["polygodie_1"]))
+@router.message(F.text.lower() == "первое полугодие")
+async def pars_1_polygodie(message: Message):
+    users_id = message.from_user.id
+    results = await check_users_in_table(users_id)
+    """
+    Тут жоская ловушка results == str
+    """
+    int_results = int(results)
+    if int_results == users_id:
+        await message.answer(text='Запуск парсера...')
+        text = await pars_1_polygodie(users_id)
+        await message.reply(text=f'{text}')
+    else:
+        await message.answer(text='Ошибка:\nВы еще не передали ваши данные.')
+
+
+@router.message(Command(commands=["polygodie_2"]))
+@router.message(F.text.lower() == "второе полугодие")
+async def pars_2_polygodie(message: Message):
+    await message.reply(text='Еще не готово')
+
+
+"""
+Это надо использовать перед любым запросом на АИС(то что снизу)
+"""
 
 
 async def check_users_in_table(user_id):
@@ -113,7 +162,7 @@ async def check_users_in_table(user_id):
     return res
 
 
-async def parsing(user_id):
+async def parsing_itog(user_id):
     connection = sqlite3.connect('users_data.db')
     cursor = connection.cursor()
     cursor.execute('SELECT login_user, password_user FROM Users WHERE user_id = ?', (user_id,))
@@ -123,6 +172,38 @@ async def parsing(user_id):
         password = i[1]
     connection.close()
     ais = ais_dnevnik(login, password, 'Итоговые оценки')
+    ais.get_cook()  # -------- РАБОТАЕТ (получаем куки)
+    ais.search_all_id()
+    responce = ais.select_variant()
+    return responce
+
+
+async def pars_this_week(user_id):
+    connection = sqlite3.connect('users_data.db')
+    cursor = connection.cursor()
+    cursor.execute('SELECT login_user, password_user FROM Users WHERE user_id = ?', (user_id,))
+    results = cursor.fetchall()
+    for i in results:
+        login = i[0]
+        password = i[1]
+    connection.close()
+    ais = ais_dnevnik(login, password, 'Текущая неделя')
+    ais.get_cook()  # -------- РАБОТАЕТ (получаем куки)
+    ais.search_all_id()
+    responce = ais.select_variant()
+    return responce
+
+
+async def pars_1_polygodie(user_id):
+    connection = sqlite3.connect('users_data.db')
+    cursor = connection.cursor()
+    cursor.execute('SELECT login_user, password_user FROM Users WHERE user_id = ?', (user_id,))
+    results = cursor.fetchall()
+    for i in results:
+        login = i[0]
+        password = i[1]
+    connection.close()
+    ais = ais_dnevnik(login, password, '1 Полугодие')
     ais.get_cook()  # -------- РАБОТАЕТ (получаем куки)
     ais.search_all_id()
     responce = ais.select_variant()

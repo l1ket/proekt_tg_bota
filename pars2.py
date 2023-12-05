@@ -150,8 +150,8 @@ class ais_dnevnik:
                     sr_grade_2 = x['avarageGrade']
                     final_grade_2 = x['finallygrade']
                     itog_ocenki_2 += f'Средняя оценка: {sr_grade_2}\nИтоговая оценка: {final_grade_2}\n\n'
-        print(itog_ocenki_1)
-        print(itog_ocenki_2)
+        # print(itog_ocenki_1)
+        # print(itog_ocenki_2)
         itog_ocenki = f'{itog_ocenki_1}\n{itog_ocenki_2}'
         return itog_ocenki
 
@@ -191,7 +191,7 @@ class ais_dnevnik:
         как нибудь надо заменить
         на тоже что и в функции this_week
         """
-        print(itog2)
+        # print(itog2)
         return itog2
 
     def this_week(self):
@@ -218,8 +218,8 @@ class ais_dnevnik:
                 for y in grades:
                     for ocenka in y:
                         week += f'Урок: {lesson}\nДата: {date}\nНомер урока: {number_of_lesson}\nОценка: {ocenka}\n\n'
-        print(f'Все оценки за неделю (если пусто значит на неделе оценок нет).\n\n{week}')
-        return week
+        this_week = f'Все оценки за неделю (если пусто значит на неделе оценок нет).\n\n{week}'
+        return this_week
 
     def select_variant(self):
         """
@@ -227,9 +227,11 @@ class ais_dnevnik:
         По умолчанию стоит: Текущая неделя
         """
         if self.variant == 'Текущая неделя':
-            ais_dnevnik.this_week(self)
+            this_week = ais_dnevnik.this_week(self)
+            return this_week
         elif self.variant == '1 Полугодие':
-            ais_dnevnik.all_ocenki_pervoe_polygodie(self)
+            polygodie_1 = ais_dnevnik.all_ocenki_pervoe_polygodie(self)
+            return polygodie_1
         elif self.variant == '2 Полугодие':
             pass
         elif self.variant == 'Итоговые оценки':

@@ -1,3 +1,7 @@
+"""
+Версия бота v0.1
+"""
+
 import asyncio
 import logging
 import sqlite3
