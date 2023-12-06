@@ -99,7 +99,7 @@ class ais_dnevnik:
         for stid in response_for_url_str:
             self.stid = stid['id']
 
-        response_for_period = requests.get(url='https://dnevnik.egov66.ru/api/estimate/periods?schoolYear=2023&studentId=b0ccd038-8de2-4c12-913b-a1dcfb9bcfef', cookies=self.response_for_cook).text
+        response_for_period = requests.get(url=f'https://dnevnik.egov66.ru/api/estimate/periods?schoolYear=2023&studentId={self.stid}', cookies=self.response_for_cook).text
         response_for_period_str = json.loads(response_for_period)
         response_for_period_str = response_for_period_str['periods']
         for i in response_for_period_str:
