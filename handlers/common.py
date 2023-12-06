@@ -3,8 +3,9 @@ from aiogram.filters import Command
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
-from aiogram.types import Message, ReplyKeyboardRemove
+from aiogram.types import Message  # ReplyKeyboardRemove
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
+from aiogram.utils.keyboard import ReplyKeyboardBuilder
 
 router = Router()
 
@@ -19,14 +20,18 @@ async def cmd_start(message: Message, state: FSMContext):
             KeyboardButton(text="Показать все команды")
         ],
     ]
+
     keyboard = ReplyKeyboardMarkup(
         keyboard=kb,
         resize_keyboard=True,
         input_field_placeholder="Чтобы увидеть все команды пропишите /help"
     )
+    builder = ReplyKeyboardBuilder.from_markup(keyboard)
+    builder.adjust(2)
+
     await message.answer(
         text="Привет этот бот получет много информации из электронного дневника свердловской области!\n"
-        "Введите /help чтобы увидеть все команды.\nИли воспользуйтесь копками на клавиатуре.\nВерсия бота: v0.1(beta)", reply_markup=keyboard
+        "Введите /help чтобы увидеть все команды.\nИли воспользуйтесь копками на клавиатуре.\nВерсия бота: v0.1.1(beta)", reply_markup=builder.as_markup(resize_keyboard=True)
     )
 
 
@@ -69,9 +74,12 @@ async def cmd_main(message: Message):
         resize_keyboard=True,
         input_field_placeholder="Версия бота: v0.1(beta)\nЧтобы увидеть все команды пропишите /help"
     )
+    builder = ReplyKeyboardBuilder.from_markup(keyboard)
+    builder.adjust(2)
+
     await message.answer(
         text="Главное меню",
-        reply_markup=keyboard
+        reply_markup=builder.as_markup(resize_keyboard=True)
     )
 
 
@@ -83,6 +91,7 @@ async def after_main(message: Message):
             KeyboardButton(text="Эта неделя"),
             KeyboardButton(text="Итоговые оценки"),
             KeyboardButton(text="Второе полугодие"),
+            KeyboardButton(text="Получить все оценки по конкретному предмету"),
             KeyboardButton(text="Главное меню")
         ],
     ]
@@ -91,13 +100,12 @@ async def after_main(message: Message):
         resize_keyboard=True,
         input_field_placeholder="Чтобы увидеть все команды пропишите /help"
     )
+    builder = ReplyKeyboardBuilder.from_markup(keyboard)
+    builder.adjust(2)
     await message.answer(
         text="Выберите вариант на клавиатуре или напшите сами один из следующих вариантов:\n"
-        "1.Первое полугодие\n2.Эта неделя\n3.Итоговые оценки\n4.Второе полугодие", reply_markup=keyboard
+        "1. Первое полугодие\n2. Эта неделя\n3. Итоговые оценки\n4. Второе полугодие", reply_markup=builder.as_markup(resize_keyboard=True)
         )
-
-# Нетрудно догадаться, что следующие два хэндлера можно
-# спокойно объединить в один, но для полноты картины оставим так
 
 # default_state - это то же самое, что и StateFilter(None)
 @router.message(StateFilter(None), Command(commands=["cancel"]))

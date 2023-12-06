@@ -22,12 +22,20 @@ class ais_dnevnik:
         self.dict_periods = period
         self.status = 0
         self.stid = 0
-        self.responce_for_cook = ''
+        self.response_for_cook = ''
+        self.dict_subjects = {}
 
     def get_status(self):
         """
         Получаем статус для тг бота
+        (есть интресная ситуация - на сайте есть аккаунт
+        с учетными данными: 123 123
+        и получается что на этот акк можно зайти,
+        но он не юзабельный)
         """
+        if self.login == 123 or self.login == '123' and self.password == 123 or self.password == '123':
+            return 0
+
         link = 'https://dnevnik.egov66.ru/api/auth/Auth/Login'  # Пока хост не сменят ссылка не меняется(хост сменили в этот ноябрь, так что могут еще раз, хотя хост уже только на нашу область так что врятли)
         data = json.dumps({"login": f"{self.login}",
                         "password": f"{self.password}"})
@@ -39,6 +47,7 @@ class ais_dnevnik:
 
         response_for_cook = requests.post(link, data=data,
                                         headers=headers).status_code  # Проверка подошли данные или нет
+        # print(response_for_cook)
         if response_for_cook == 200:
             self.status = 200
         else:
@@ -221,6 +230,46 @@ class ais_dnevnik:
         this_week = f'Все оценки за неделю (если пусто значит на неделе оценок нет).\n\n{week}'
         return this_week
 
+    def all_subjects(self):
+        counter = 0
+        subjects = ''
+        response = requests.get(url=f'https://dnevnik.egov66.ru/api/estimate/subjects?schoolYear=2023&studentId={self.stid}',
+                                cookies=self.response_for_cook)
+        soup = BeautifulSoup(response.text, 'lxml')
+        dict_week = json.loads(soup.text)
+        list_subjects = dict_week['subjects']
+        list_len = len(list_subjects)
+        for i in list_subjects[:list_len-1]:
+            counter += 1
+            name = i['name']
+            subjects += f'{counter}. {name}\n'
+            id_subject = i['id']
+            self.dict_subjects[f'{name}'] = f'{id_subject}'
+        return subjects
+
+    def current_subject(self, subject):
+        """
+        Получаем оценки по конкретному предмету
+        """
+        if subject not in self.dict_subjects:
+            text = 'В списке нет такого предмета. :('
+            print(text)
+            return text
+        else:
+            les_id = self.dict_subjects[f'{subject}']
+            print(les_id)
+            week = ''
+            response = requests.get(url=f'https://dnevnik.egov66.ru/api/lesson/allGrades?lessonId={les_id}&studentId={self.stid}',
+                                    cookies=self.response_for_cook)
+            soup = BeautifulSoup(response.text, 'lxml')
+            print(soup)
+            dict_week = json.loads(soup.text)
+            print(dict_week)
+            """
+            Супер тяжелые данные, пока что скип.
+            """
+        ...
+
     def select_variant(self):
         """
         Выберает вариант что спарсить\n
@@ -237,16 +286,22 @@ class ais_dnevnik:
         elif self.variant == 'Итоговые оценки':
             itog = ais_dnevnik.find_itog_ocenki(self)
             return itog
+        elif self.variant == 'Все предметы':
+            sub = ais_dnevnik.all_subjects(self)
+            return sub
         """
         Функия работает(доделать остальные функции так же как 'Итоговые оценки')
         """
 
 
 if __name__ == '__main__':
-    ais = ais_dnevnik("DIzmestjev5f43", 't9vMzoB&Tw', 'Итоговые оценки')
+    ais = ais_dnevnik("DIzmestjev5f43", 't9vMzoB&Tw')
     response_for_cook = ais.get_cook()  # -------- РАБОТАЕТ (получаем куки)
     stid = ais.search_all_id()
-    ais.select_variant()
+    # ais.select_variant()
+    ais.all_subjects()
+    ais.current_subject('Химия')
+    
 
 """
 
