@@ -54,7 +54,7 @@ async def pass_and_log_get(message: Message, state: FSMContext):
     keyboard = ReplyKeyboardMarkup(
             keyboard=kb,
             resize_keyboard=True,
-            input_field_placeholder="Чтобы увидеть все команды пропишите /help"
+            input_field_placeholder="Чтобы вернуться в главное меню пропишите /main или /start"
         )
 
     await state.update_data(chosen_pass=message.text)
@@ -73,28 +73,6 @@ async def pass_and_log_get(message: Message, state: FSMContext):
         await message.answer(text='Данные не подошли, введите их еще раз.'
                              '\nНачнем с логина:')
         await state.set_state(get_data.get_log)
-
-
-# async def add_to_table(user_id, login, password):
-#     """
-#     Асихронная функция которая сохраняет данные в БД на компе, в формате:
-#     №id(возможно в БД я хз),
-#     user_id, login_user, password_user, user_cookie = 1.
-#     """
-#     connection = sqlite3.connect('users_data.db')
-#     cursor = connection.cursor()
-#     cursor.execute('INSERT INTO Users (user_id, login_user, password_user, user_cookie) VALUES (?, ?, ? , ?)', (f'{user_id}', f'{login}', f'{password}', '1'))
-#     connection.commit()
-#     connection.close()
-
-
-# async def check_stasus(login, password):
-#     """
-#     Проверка подходят данные пользователя или нет
-#     """
-#     ais = ais_dnevnik(log=login, passw=password)
-#     status = ais.get_status()
-#     return status
 
 
 @router.callback_query(F.data == "this_week_grades")
@@ -203,7 +181,8 @@ async def select_homeworks(callback: types.CallbackQuery):
 
 @router.callback_query(F.data == "all_grades_for_lesson")
 async def start_pars(callback: types.CallbackQuery):
-    await callback.message.answer(text='Ещё не готово.')
+    await callback.answer(text='Ещё не готово')
+
 
 
 
