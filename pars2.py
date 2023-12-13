@@ -12,6 +12,7 @@ from bs4 import BeautifulSoup
 import json
 import re
 import time
+import datetime
 
 
 class ais_dnevnik:
@@ -270,6 +271,64 @@ class ais_dnevnik:
             """
         ...
 
+    def homework_this_day(self):
+        home_works = ''
+        date = datetime.datetime.now()
+        date = date.date()
+        # print(date)
+        response = requests.get(url=f'https://dnevnik.egov66.ru/api/homework?date={date}&studentId={self.stid}',
+                                cookies=self.response_for_cook)
+        soup = BeautifulSoup(response.text, 'lxml')
+        dict_week = json.loads(soup.text)
+        home_work = dict_week['homeworks']
+        day_week = date.weekday()
+        if day_week == 0:
+            day_week = 'Понедельник'
+        elif day_week == 1:
+            day_week = 'Вторник'
+        elif day_week == 2:
+            day_week = 'Среда'
+        elif day_week == 3:
+            day_week = 'Четверг'
+        elif day_week == 4:
+            day_week = 'Пятница'
+        elif day_week == 5:
+            day_week = 'Суббота'
+        elif day_week == 6:
+            day_week = 'Воскресенье'
+        home_works += f'Выбранный день: {date}/{day_week}\n'
+        if day_week == 'Суббота' or day_week == 'Воскресенье':
+            home_works += 'Это выходной.'
+            print(home_works)
+            return home_works
+        else:
+            home_works += 'Д/З(Если пусто то ничего не задали):\n\n'
+            for i in home_work:
+                counter = 0
+                name_file = ''
+                name = i['lessonName']
+                description = i['description']
+                files = i['homeWorkFiles']
+                for x in files:
+                    counter += 1
+                    id_file = x['id']
+                    name_file += x['name']
+                    # response = requests.get(url=f'https://dnevnik.egov66.ru/api/lesson/homework/files/{id_file}',
+                    #             cookies=self.response_for_cook)
+                    # with open(f"tutorial{counter}.pdf", "wb") as code:
+                    #     code.write(response.content)
+                    # with open(f"tutorial{counter}.docx", "wb") as code:
+                    #     code.write(response.content)
+                    # # print(soup)
+                    """
+                    скачка файлов, работает только pdf
+                    """
+                home_works += f'Название урока: {name}\nОписание Д/З: {description}\n'
+                home_works += f'Прикреплённые файлы: {name_file}\n\n'
+                # /api/lesson/homework/files/37656041-e6c0-4f7d-bb09-d6e8cff8dbb9
+        # print(home_works)
+        return home_works
+
     def select_variant(self):
         """
         Выберает вариант что спарсить\n
@@ -289,19 +348,20 @@ class ais_dnevnik:
         elif self.variant == 'Все предметы':
             sub = ais_dnevnik.all_subjects(self)
             return sub
-        """
-        Функия работает(доделать остальные функции так же как 'Итоговые оценки')
-        """
+        elif self.variant == 'Домашнее задание этот день':
+            home = ais_dnevnik.homework_this_day(self)
+            return home
 
 
 if __name__ == '__main__':
-    ais = ais_dnevnik("DIzmestjev5f43", 't9vMzoB&Tw')
+    ais = ais_dnevnik("DIzmestjev5f43", 't9vMzoB&Tw', 'Домашнее задание этот день')
     response_for_cook = ais.get_cook()  # -------- РАБОТАЕТ (получаем куки)
     stid = ais.search_all_id()
-    # ais.select_variant()
-    ais.all_subjects()
-    ais.current_subject('Химия')
-    
+    # ais.homework_this_day()
+    ais.select_variant()
+    # ais.all_subjects()
+    # ais.current_subject('Химия')
+
 
 """
 

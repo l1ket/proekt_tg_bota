@@ -6,7 +6,10 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, ReplyKeyboardRemove
 from pars2 import ais_dnevnik
-from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
+from aiogram.types import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardButton
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram import types
+import datetime
 # from aiogram.utils.keyboard import ReplyKeyboardBuilder
 
 router = Router()
@@ -53,7 +56,7 @@ async def pass_and_log_get(message: Message, state: FSMContext):
             resize_keyboard=True,
             input_field_placeholder="Чтобы увидеть все команды пропишите /help"
         )
-        
+
     await state.update_data(chosen_pass=message.text)
     user_data = await state.get_data()
     status = await check_stasus(user_data['chosen_log'], user_data['chosen_pass'])
@@ -72,105 +75,145 @@ async def pass_and_log_get(message: Message, state: FSMContext):
         await state.set_state(get_data.get_log)
 
 
-async def add_to_table(user_id, login, password):
-    """
-    Асихронная функция которая сохраняет данные в БД на компе, в формате:
-    №id(возможно в БД я хз),
-    user_id, login_user, password_user, user_cookie = 1.
-    """
-    connection = sqlite3.connect('users_data.db')
-    cursor = connection.cursor()
-    cursor.execute('INSERT INTO Users (user_id, login_user, password_user, user_cookie) VALUES (?, ?, ? , ?)', (f'{user_id}', f'{login}', f'{password}', '1'))
-    connection.commit()
-    connection.close()
+# async def add_to_table(user_id, login, password):
+#     """
+#     Асихронная функция которая сохраняет данные в БД на компе, в формате:
+#     №id(возможно в БД я хз),
+#     user_id, login_user, password_user, user_cookie = 1.
+#     """
+#     connection = sqlite3.connect('users_data.db')
+#     cursor = connection.cursor()
+#     cursor.execute('INSERT INTO Users (user_id, login_user, password_user, user_cookie) VALUES (?, ?, ? , ?)', (f'{user_id}', f'{login}', f'{password}', '1'))
+#     connection.commit()
+#     connection.close()
 
 
-async def check_stasus(login, password):
-    """
-    Проверка подходят данные пользователя или нет
-    """
-    ais = ais_dnevnik(log=login, passw=password)
-    status = ais.get_status()
-    return status
+# async def check_stasus(login, password):
+#     """
+#     Проверка подходят данные пользователя или нет
+#     """
+#     ais = ais_dnevnik(log=login, passw=password)
+#     status = ais.get_status()
+#     return status
 
-# Переименовать
-@router.message(Command(commands=["give_allpars"]))
-@router.message(F.text.lower() == "итоговые оценки")
-async def start_pars(message: Message):
-    users_id = message.from_user.id
+
+@router.callback_query(F.data == "this_week_grades")
+async def start_week(callback: types.CallbackQuery):
+    users_id = callback.from_user.id
     results = await check_users_in_table(users_id)
     """
     Тут жоская ловушка results == str
     """
     int_results = int(results)
     if int_results == users_id:
-        await message.answer(text='Запуск парсера...')
-        text = await parsing_itog(users_id)
-        await message.reply(text=f'{text}')
-    else:
-        await message.answer(text='Ошибка:\nВы еще не передали ваши данные.')
-
-
-# Переименовать
-@router.message(Command(commands=["this_week"]))
-@router.message(F.text.lower() == "эта неделя")
-async def pars_week(message: Message):
-    users_id = message.from_user.id
-    results = await check_users_in_table(users_id)
-    """
-    Тут жоская ловушка results == str
-    """
-    int_results = int(results)
-    if int_results == users_id:
-        await message.answer(text='Запуск парсера...')
+        await callback.answer(text='Запуск парсера...')
         text = await pars_this_week(users_id)
-        await message.reply(text=f'{text}')
+        await callback.message.delete()
+        await callback.message.answer(text=f'{text}')
     else:
-        await message.answer(text='Ошибка:\nВы еще не передали ваши данные.')
+        await callback.answer(text='Ошибка:\nВы еще не передали ваши данные.')
 
 
-# Переименовать
-@router.message(Command(commands=["polygodie_1"]))
-@router.message(F.text.lower() == "первое полугодие")
-async def pars_1_polygodie_in_tg(message: Message):
-    users_id = message.from_user.id
+@router.callback_query(F.data == "this_day_homework")
+async def start_day(callback: types.CallbackQuery):
+    users_id = callback.from_user.id
     results = await check_users_in_table(users_id)
     """
     Тут жоская ловушка results == str
     """
     int_results = int(results)
     if int_results == users_id:
-        await message.answer(text='Запуск парсера...')
-        text = await pars_1_polygodie(users_id)
-        await message.reply(text=f'{text}')
+        await callback.answer(text='Запуск парсера...')
+        text = await get_this_homework(users_id)
+        await callback.message.delete()
+        await callback.message.answer(text=f'{text}')
     else:
-        await message.answer(text='Ошибка:\nВы еще не передали ваши данные.')
+        await callback.answer(text='Ошибка:\nВы еще не передали ваши данные.')
 
 
-@router.message(Command(commands=["polygodie_2"]))
-@router.message(F.text.lower() == "второе полугодие")
-async def pars_2_polygodie(message: Message):
-    await message.reply(text='Еще не готово')
-
-
-@router.message(F.text.lower() == "получить все оценки по конкретному предмету")
-async def all_sub(message: Message):
+@router.callback_query(F.data == "1polygodie")
+async def start_1_polygodie(callback: types.CallbackQuery):
+    users_id = callback.from_user.id
+    results = await check_users_in_table(users_id)
     """
-    Пока что забил т.к. очень тяжело понять откуда брать lessonid.
+    Тут жоская ловушка results == str
     """
-    # users_id = message.from_user.id
-    # results = await check_users_in_table(users_id)
-    # """
-    # Тут жоская ловушка results == str
-    # """
-    # int_results = int(results)
-    # if int_results == users_id:
-    #     await message.answer(text='Запуск парсера...')
-    #     text = await all_subjects(users_id)
-    #     await message.reply(text=f'{text}')
-    # else:
-    #     await message.answer(text='Ошибка:\nВы еще не передали ваши данные.')
-    await message.answer(text='В разработке...')
+    int_results = int(results)
+    if int_results == users_id:
+        await callback.answer(text='Запуск парсера...')
+        text = await pars_1_polygodie(users_id)
+        await callback.message.delete()
+        await callback.message.answer(text=f'{text}')
+    else:
+        await callback.answer(text='Ошибка:\nВы еще не передали ваши данные.')
+
+
+@router.callback_query(F.data == "2polygodie")
+async def start_pars_2_polygodie(callback: types.CallbackQuery):
+    await callback.answer(text='Ещё не 2 полугодие.')
+
+
+@router.callback_query(F.data == "all_grades")
+async def start_all_grades(callback: types.CallbackQuery):
+    users_id = callback.from_user.id
+    results = await check_users_in_table(users_id)
+    """
+    Тут жоская ловушка results == str
+    """
+    int_results = int(results)
+    if int_results == users_id:
+        await callback.answer(text='Запуск парсера...')
+        text = await parsing_itog(users_id)
+        await callback.message.delete()
+        await callback.message.answer(text=f'{text}')
+    else:
+        await callback.answer(text='Ошибка:\nВы еще не передали ваши данные.')
+
+
+@router.callback_query(F.data == "homeworks")
+async def select_homeworks(callback: types.CallbackQuery):
+    await callback.answer()
+    await callback.message.delete()
+    date = datetime.datetime.now()
+    date = date.date()
+    day_week = date.weekday()
+    if day_week == 0:
+        day_week = 'Понедельник'
+    elif day_week == 1:
+        day_week = 'Вторник'
+    elif day_week == 2:
+        day_week = 'Среда'
+    elif day_week == 3:
+        day_week = 'Четверг'
+    elif day_week == 4:
+        day_week = 'Пятница'
+    elif day_week == 5:
+        day_week = 'Суббота'
+    elif day_week == 6:
+        day_week = 'Воскресенье'
+
+    builder = InlineKeyboardBuilder()
+    builder.button(text="Выбрать день Д/З", callback_data='...')
+    builder.button(text="Д/З за сегодня", callback_data='this_day_homework')
+    builder.button(text="Отмена", callback_data='back')
+    builder.adjust(2)
+
+    await callback.message.answer(text=f'Сегодня: {date}/{day_week}', reply_markup=builder.as_markup())
+
+
+@router.callback_query(F.data == "all_grades_for_lesson")
+async def start_pars(callback: types.CallbackQuery):
+    await callback.message.answer(text='Ещё не готово.')
+
+
+
+@router.callback_query(F.data == "random_value")
+async def send_random_value(callback: types.CallbackQuery):
+    await callback.message.answer('пасхалка')
+    await callback.answer(
+        text="Спасибо, что воспользовались ботом!",
+        show_alert=True
+    )
 
 
 """
@@ -193,6 +236,28 @@ async def check_users_in_table(user_id):
     if res == '':
         res = 1
     return res
+
+
+async def add_to_table(user_id, login, password):
+    """
+    Асихронная функция которая сохраняет данные в БД на компе, в формате:
+    №id(возможно в БД я хз),
+    user_id, login_user, password_user, user_cookie = 1.
+    """
+    connection = sqlite3.connect('users_data.db')
+    cursor = connection.cursor()
+    cursor.execute('INSERT INTO Users (user_id, login_user, password_user, user_cookie) VALUES (?, ?, ? , ?)', (f'{user_id}', f'{login}', f'{password}', '1'))
+    connection.commit()
+    connection.close()
+
+
+async def check_stasus(login, password):
+    """
+    Проверка подходят данные пользователя или нет
+    """
+    ais = ais_dnevnik(log=login, passw=password)
+    status = ais.get_status()
+    return status
 
 
 async def parsing_itog(user_id):
@@ -253,6 +318,22 @@ async def all_subjects(user_id):
         password = i[1]
     connection.close()
     ais = ais_dnevnik(login, password, 'Все предметы')
+    ais.get_cook()  # получаем куки
+    ais.search_all_id()
+    responce = ais.select_variant()
+    return responce
+
+
+async def get_this_homework(user_id):
+    connection = sqlite3.connect('users_data.db')
+    cursor = connection.cursor()
+    cursor.execute('SELECT login_user, password_user FROM Users WHERE user_id = ?', (user_id,))
+    results = cursor.fetchall()
+    for i in results:
+        login = i[0]
+        password = i[1]
+    connection.close()
+    ais = ais_dnevnik(login, password, 'Домашнее задание этот день')
     ais.get_cook()  # получаем куки
     ais.search_all_id()
     responce = ais.select_variant()

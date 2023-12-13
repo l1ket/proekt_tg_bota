@@ -4,8 +4,10 @@ from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
 from aiogram.types import Message  # ReplyKeyboardRemove
-from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
+from aiogram.types import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram import types
 
 router = Router()
 
@@ -83,29 +85,54 @@ async def cmd_main(message: Message):
     )
 
 
+@router.callback_query(F.data == "back")
+async def back(callback: types.CallbackQuery):
+    await callback.answer()
+    await callback.message.delete()
+
+    builder = InlineKeyboardBuilder()
+    builder.button(text="Эта неделя", callback_data='this_week_grades')
+    builder.button(text="Домашние задания", callback_data='homeworks')
+    builder.button(text="Первое полугодие", callback_data='1polygodie')
+    builder.button(text="Второе полугодие", callback_data='2polygodie')
+    builder.button(text="Итоговые оценки", callback_data='all_grades')
+    builder.button(text="Получить все оценки по конкретному предмету(в разработке...)", callback_data='all_grades_for_lesson')
+    builder.adjust(1)
+
+    await callback.message.answer(
+        text="Выберите вариант ниже:", reply_markup=builder.as_markup()
+        )
+
+
 @router.message(F.text.lower() == "получить оценки из аис(дневника)")
 async def after_main(message: Message):
-    kb = [
-        [
-            KeyboardButton(text="Первое полугодие"),
-            KeyboardButton(text="Эта неделя"),
-            KeyboardButton(text="Итоговые оценки"),
-            KeyboardButton(text="Второе полугодие"),
-            KeyboardButton(text="Получить все оценки по конкретному предмету"),
-            KeyboardButton(text="Главное меню")
-        ],
-    ]
-    keyboard = ReplyKeyboardMarkup(
-        keyboard=kb,
-        resize_keyboard=True,
-        input_field_placeholder="Чтобы увидеть все команды пропишите /help"
-    )
-    builder = ReplyKeyboardBuilder.from_markup(keyboard)
-    builder.adjust(2)
+    builder = InlineKeyboardBuilder()
+
+    builder.button(text="Эта неделя", callback_data='this_week_grades')
+    builder.button(text="Домашние задания", callback_data='homeworks')
+    builder.button(text="Первое полугодие", callback_data='1polygodie')
+    builder.button(text="Второе полугодие", callback_data='2polygodie')
+    builder.button(text="Итоговые оценки", callback_data='all_grades')
+    builder.button(text="Получить все оценки по конкретному предмету(в разработке...)", callback_data='all_grades_for_lesson')
+
+    builder.adjust(1)
     await message.answer(
-        text="Выберите вариант на клавиатуре или напшите сами один из следующих вариантов:\n"
-        "1. Первое полугодие\n2. Эта неделя\n3. Итоговые оценки\n4. Второе полугодие", reply_markup=builder.as_markup(resize_keyboard=True)
+        text="Выберите вариант ниже:", reply_markup=builder.as_markup()
         )
+
+
+@router.message(Command("random"))
+async def cmd_random(message: Message):
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(
+        text="Нажми меня",
+        callback_data="random_value")
+    )
+    await message.answer(
+        "Нажмите на кнопку, чтобы бот отправил число от 1 до 10",
+        reply_markup=builder.as_markup()
+    )
+
 
 # default_state - это то же самое, что и StateFilter(None)
 @router.message(StateFilter(None), Command(commands=["cancel"]))

@@ -35,7 +35,7 @@ async def main():
     connection.close()
     # Если не указать storage, то по умолчанию всё равно будет MemoryStorage
     # Но явное лучше неявного =]
-    dp = Dispatcher(storage=MemoryStorage())  
+    dp = Dispatcher(storage=MemoryStorage())
     bot = Bot(token='6028764195:AAF1iMb6Vh_yYdJGnQsn73I3J1Vv4W-YoZc')
 
     dp.include_router(common.router)
