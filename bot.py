@@ -9,7 +9,7 @@ import sqlite3
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 
-from handlers import common, getting_log_and_pass
+from handlers import common, getting_log_and_pass, admin_func
 
 
 async def main():
@@ -40,6 +40,7 @@ async def main():
 
     dp.include_router(common.router)
     dp.include_router(getting_log_and_pass.router)
+    dp.include_router(admin_func.router)
 
     await bot.delete_webhook(drop_pending_updates=True)  # Скипает все новые сообщения
     await dp.start_polling(bot)
