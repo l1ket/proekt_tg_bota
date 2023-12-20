@@ -1,19 +1,19 @@
+"""
+Админ функции
+"""
 import sqlite3
 from aiogram import F, Router
 from aiogram import Bot
 from aiogram.filters import Command
-from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
-from aiogram.fsm.state import default_state
-from aiogram.types import Message  # ReplyKeyboardRemove
-from aiogram.types import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup
-from aiogram.utils.keyboard import ReplyKeyboardBuilder
+from aiogram.types import Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram import types
 
 router = Router()
 bot = Bot(token='6028764195:AAF1iMb6Vh_yYdJGnQsn73I3J1Vv4W-YoZc')
+
 
 class admins_states(StatesGroup):
     choose = State()
@@ -71,21 +71,14 @@ async def get_ids():
 
 
 @router.message()  # Функция для ответа на любые не подохдящие сообщения
-async def messages(message: Message):
-    kb = [
-        [
-            KeyboardButton(text="Передать логин и пароль"),
-            KeyboardButton(text="Получить оценки из АИС(дневника)")
-        ],
-    ]
+async def messages(message: Message, state: FSMContext):
 
-    keyboard = ReplyKeyboardMarkup(
-        keyboard=kb,
-        resize_keyboard=True,
-        input_field_placeholder="Версия бота: v0.2(beta)"
+    builder = InlineKeyboardBuilder()
+    builder.button(text="Главное меню", callback_data='start_back')
+    builder.adjust(1)
+
+    await state.clear()
+    await message.answer(
+        text="Я не понял, нажмите кнопку ниже",
+        reply_markup=builder.as_markup()
     )
-    builder = ReplyKeyboardBuilder.from_markup(keyboard)
-    builder.adjust(2)
-
-    await message.answer(text='Я не понял, попробуйте потыкать по кнопкам',
-                         reply_markup=builder.as_markup(resize_keyboard=True))

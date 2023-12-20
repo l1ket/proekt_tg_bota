@@ -16,6 +16,12 @@ import datetime
 
 
 class ais_dnevnik:
+    """
+    Класс аис дневник.
+    самый важный все что написано в self
+    сделанно специально для начальной и последующей
+    инициализации нужных данных
+    """
     def __init__(self, log='', passw='', variant='Текущая неделя', **period) -> None:
         self.login = log
         self.password = passw
@@ -34,6 +40,7 @@ class ais_dnevnik:
         и получается что на этот акк можно зайти,
         но он не юзабельный)
         """
+
         if self.login == 123 or self.login == '123' and self.password == 123 or self.password == '123':
             return 0
 
@@ -59,11 +66,9 @@ class ais_dnevnik:
 
     def get_cook(self):
         """
-
         Лутаем куки.
-        Добавить потом получение данных логина и пароля от пользователя
-
         """
+
         link = 'https://dnevnik.egov66.ru/api/auth/Auth/Login'  # Пока хост не сменят ссылка не меняется(хост сменили в этот ноябрь, так что могут еще раз, хотя хост уже только на нашу область так что врятли)
         data = json.dumps({"login": f"{self.login}",
                         "password": f"{self.password}"})
@@ -100,28 +105,30 @@ class ais_dnevnik:
         subjectId = нет
         (используется в случае если перейти во вкладку отдельного предмета)\n
         studentId = есть\n
-
         """
 
         response_for_url = requests.get(url='https://dnevnik.egov66.ru/api/students', cookies=self.response_for_cook).text
         response_for_url_str = json.loads(response_for_url)
         response_for_url_str = response_for_url_str['students']
+
         for stid in response_for_url_str:
             self.stid = stid['id']
 
         response_for_period = requests.get(url=f'https://dnevnik.egov66.ru/api/estimate/periods?schoolYear=2023&studentId={self.stid}', cookies=self.response_for_cook).text
         response_for_period_str = json.loads(response_for_period)
         response_for_period_str = response_for_period_str['periods']
+
         for i in response_for_period_str:
             name_period = i['name']
             id_period = i['id']
             self.dict_periods[name_period] = id_period
+
         return self.stid
 
-    def find_itog_ocenki(self):
+    def find_itog_ocenki(self):  # С 9-11 классы
         """
         Получаем буквально все оценки из вкладки 'Итоговые оценки'\n
-        Кроме оценок экзамен и похожих(потому что не целесообразно)
+        Кроме оценок за экзамен и похожих(потому что не целесообразно)
         Вообщем в ссылке нужно 4 элемента(хотя мб нет, получается и без них):\n
         schoolYear = нет(его либо нельзя найти либо я плохо искал,
         так что будем сами ставить года)\n
@@ -129,8 +136,9 @@ class ais_dnevnik:
         subjectId = нет
         (используется в случае если перейти во вкладку отдельного предмета)\n
         studentId = есть\n
-        (самая долгая функция в плане ожидания по времени - хз почему так)
+        (самая долгая функция в плане ожидания по времени)
         """
+
         itog_ocenki_1 = 'Итоговые оценки за 1 полугодие(если стоит None или 0, то учителя еще не выставили):\n\n'
         itog_ocenki_2 = 'Итоговые оценки за 2 полугодие(если стоит None или 0, то учителя еще не выставили):\n\n'
         perid = self.dict_periods['Итоговые оценки']
@@ -141,7 +149,9 @@ class ais_dnevnik:
         dict_lessons = json.loads(soup.text)  # Преобразовал str в dict
         find_lessons = dict_lessons['yearGradesTable']
         find_lessons2 = find_lessons['lessonGrades']  # --- (type - list)
+
         for i in find_lessons2:
+
             lesson_info = i['lesson']
             lesson_name = lesson_info['name']
 
@@ -150,28 +160,95 @@ class ais_dnevnik:
 
             lesson_grades = i['grades']
             for x in lesson_grades:
+
                 perid_1 = self.dict_periods['1 Полугодие']
                 perid_2 = self.dict_periods['2 Полугодие']
+
                 if perid_1 == x['periodId']:
+
                     sr_grade_1 = x['avarageGrade']
                     final_grade_1 = x['finallygrade']
                     itog_ocenki_1 += f'Средняя оценка: {sr_grade_1}\nИтоговая оценка: {final_grade_1}\n\n'
+
                 elif perid_2 == x['periodId']:
+
                     sr_grade_2 = x['avarageGrade']
                     final_grade_2 = x['finallygrade']
                     itog_ocenki_2 += f'Средняя оценка: {sr_grade_2}\nИтоговая оценка: {final_grade_2}\n\n'
-        # print(itog_ocenki_1)
-        # print(itog_ocenki_2)
+
         itog_ocenki = f'{itog_ocenki_1}\n{itog_ocenki_2}'
+        return itog_ocenki
+
+    def find_itog_ocenki_nine(self):  # С 1-9 классы
+
+        itog_ocenki = ''
+        itog_ocenki_1 = 'Первая четверть:\n\n'
+        itog_ocenki_2 = 'Вторая четверть:\n\n'
+        itog_ocenki_3 = 'Третья четверть:\n\n'
+        itog_ocenki_4 = 'Четвёртая четверть:\n\n'
+
+        perid = self.dict_periods['Итоговые оценки']
+        response2 = requests.get(
+            url=f'https://dnevnik.egov66.ru/api/estimate?schoolYear=2023&periodId={perid}&subjectId=00000000-0000-0000-0000-000000000000&studentId={self.stid}',
+            cookies=self.response_for_cook)
+        soup = BeautifulSoup(response2.text, 'lxml')
+        dict_lessons = json.loads(soup.text)  # Преобразовал str в dict
+        find_lessons = dict_lessons['yearGradesTable']
+        find_lessons2 = find_lessons['lessonGrades']  # --- (type - list)
+
+        for i in find_lessons2:
+            lesson_info = i['lesson']
+            lesson_name = lesson_info['name']
+
+            itog_ocenki_1 += f'{lesson_name}:\n'
+            itog_ocenki_2 += f'{lesson_name}:\n'
+            itog_ocenki_3 += f'{lesson_name}:\n'
+            itog_ocenki_4 += f'{lesson_name}:\n'
+
+            lesson_grades = i['grades']
+            for x in lesson_grades:
+
+                perid_1 = self.dict_periods['1 Четверть']
+                perid_2 = self.dict_periods['2 Четверть']
+                perid_3 = self.dict_periods['3 Четверть']
+                perid_4 = self.dict_periods['4 Четверть']
+
+                if perid_1 == x['periodId']:
+
+                    sr_grade_1 = x['avarageGrade']
+                    final_grade_1 = x['finallygrade']
+                    itog_ocenki_1 += f'Средняя оценка: {sr_grade_1}\nИтоговая оценка: {final_grade_1}\n\n'
+
+                elif perid_2 == x['periodId']:
+
+                    sr_grade_2 = x['avarageGrade']
+                    final_grade_2 = x['finallygrade']
+                    itog_ocenki_2 += f'Средняя оценка: {sr_grade_2}\nИтоговая оценка: {final_grade_2}\n\n'
+
+                elif perid_3 == x['periodId']:
+
+                    sr_grade_1 = x['avarageGrade']
+                    final_grade_1 = x['finallygrade']
+                    itog_ocenki_3 += f'Средняя оценка: {sr_grade_1}\nИтоговая оценка: {final_grade_1}\n\n'
+
+                elif perid_4 == x['periodId']:
+
+                    sr_grade_2 = x['avarageGrade']
+                    final_grade_2 = x['finallygrade']
+                    itog_ocenki_4 += f'Средняя оценка: {sr_grade_2}\nИтоговая оценка: {final_grade_2}\n\n'
+
+        itog_ocenki += f'{itog_ocenki_1}\n{itog_ocenki_2}\n'
+        itog_ocenki += f'{itog_ocenki_3}\n{itog_ocenki_4}'
+        # print(itog_ocenki)
+
         return itog_ocenki
 
     def all_ocenki_pervoe_polygodie(self):
         """
-
         Передает все оценки(за первое полугодие) в виде:\n
         Предмет: оценка, оценка и т.д.
-
         """
+
         perid = self.dict_periods['1 Полугодие']
         response2 = requests.get(
             url=f'https://dnevnik.egov66.ru/api/estimate?schoolYear=2023&periodId={perid}&subjectId=00000000-0000-0000-0000-000000000000&studentId={self.stid}',
@@ -197,17 +274,19 @@ class ais_dnevnik:
         itog2 = re.sub('\[', '', itog)
         itog2 = re.sub('\]', '', itog2)
         itog2 = re.sub('\'', '', itog2)
+
         """
         как нибудь надо заменить
         на тоже что и в функции this_week
         """
-        # print(itog2)
+
         return itog2
 
     def this_week(self):
         """
         Получаем оценки за текущую неделю
         """
+
         perid = self.dict_periods['Текущая неделя']
         week = ''
         response = requests.get(url=f'https://dnevnik.egov66.ru/api/estimate?schoolYear=2023&periodId={perid}&subjectId=00000000-0000-0000-0000-000000000000&studentId={self.stid}',
@@ -232,6 +311,7 @@ class ais_dnevnik:
         return this_week
 
     def all_subjects(self):
+
         counter = 0
         subjects = ''
         response = requests.get(url=f'https://dnevnik.egov66.ru/api/estimate/subjects?schoolYear=2023&studentId={self.stid}',
@@ -252,6 +332,7 @@ class ais_dnevnik:
         """
         Получаем оценки по конкретному предмету
         """
+
         if subject not in self.dict_subjects:
             text = 'В списке нет такого предмета. :('
             print(text)
@@ -268,10 +349,12 @@ class ais_dnevnik:
             print(dict_week)
             """
             Супер тяжелые данные, пока что скип.
+            возможно генерируются случайно.
             """
         ...
 
     def homework_this_day(self):
+
         home_works = ''
         date = datetime.datetime.now()
         date = date.date()
@@ -329,11 +412,43 @@ class ais_dnevnik:
         # print(home_works)
         return home_works
 
+    def student_info(self):
+        '''
+        Данные об ученике или родителе
+        '''
+
+        response = requests.get(url=f'https://dnevnik.egov66.ru/api/students',
+                                cookies=self.response_for_cook)
+        soup = BeautifulSoup(response.text, 'lxml')
+        page = json.loads(soup.text)
+        parent = page['isParent']
+
+        if parent is False:
+            parent = 'Ученик'
+        else:
+            parent = 'Родитель'
+
+        results = f'Роль: {parent}\n'
+        info = page['students']
+
+        for i in info:
+            first_name = i['firstName']
+            last_name = i['lastName']
+            sur_name = i['surName']
+            class_name = i['className']
+            school = i['orgName']
+            results += f'ФИО: {last_name} {first_name} {sur_name}\n'
+            results += f'Класс: {class_name}\n'
+            results += f'Школа: {school}'
+
+        return results
+
     def select_variant(self):
         """
         Выберает вариант что спарсить\n
         По умолчанию стоит: Текущая неделя
         """
+
         if self.variant == 'Текущая неделя':
             this_week = ais_dnevnik.this_week(self)
             return this_week
@@ -345,27 +460,25 @@ class ais_dnevnik:
         elif self.variant == 'Итоговые оценки':
             itog = ais_dnevnik.find_itog_ocenki(self)
             return itog
+        elif self.variant == 'Итоговые оценки_9':
+            itog = ais_dnevnik.find_itog_ocenki_nine(self)
+            return itog
         elif self.variant == 'Все предметы':
             sub = ais_dnevnik.all_subjects(self)
             return sub
         elif self.variant == 'Домашнее задание этот день':
             home = ais_dnevnik.homework_this_day(self)
             return home
+        elif self.variant == 'Данные о аккаунте':
+            home = ais_dnevnik.student_info(self)
+            return home
 
 
 if __name__ == '__main__':
-    ais = ais_dnevnik("DIzmestjev5f43", 't9vMzoB&Tw', 'Домашнее задание этот день')
+    ais = ais_dnevnik("DIzmestjeva", '123456', 'Данные о аккаунте')
     response_for_cook = ais.get_cook()  # -------- РАБОТАЕТ (получаем куки)
     stid = ais.search_all_id()
     # ais.homework_this_day()
     ais.select_variant()
     # ais.all_subjects()
     # ais.current_subject('Химия')
-
-
-"""
-
-Еще надо будет все print в конце функций заменить на return
-print -> return
-
-"""

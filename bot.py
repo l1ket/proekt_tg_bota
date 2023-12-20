@@ -1,5 +1,5 @@
 """
-Версия бота v0.2
+Версия бота v0.2.2
 """
 
 import asyncio
@@ -9,7 +9,9 @@ import sqlite3
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 
-from handlers import common, getting_log_and_pass, admin_func
+from handlers import common, getting_log_and_pass, \
+    admin_func, firs_nine_pars, ten_eleven_pars,   \
+    accs
 
 
 async def main():
@@ -26,9 +28,10 @@ async def main():
     CREATE TABLE IF NOT EXISTS Users (
     id INTEGER PRIMARY KEY,
     user_id TEXT NOT NULL,
+    acc_name TEXT NOT NULL,
+    is_used TEXT NOT NULL,
     login_user TEXT NOT NULL,
-    password_user TEXT NOT NULL,
-    user_cookie TEXT NOT NULL
+    password_user TEXT NOT NULL
     )
     ''')
     connection.commit()
@@ -39,10 +42,15 @@ async def main():
     bot = Bot(token='6028764195:AAF1iMb6Vh_yYdJGnQsn73I3J1Vv4W-YoZc')
 
     dp.include_router(common.router)
+    dp.include_router(accs.router)
     dp.include_router(getting_log_and_pass.router)
     dp.include_router(admin_func.router)
+    dp.include_router(firs_nine_pars.router)
+    dp.include_router(ten_eleven_pars.router)
 
-    await bot.delete_webhook(drop_pending_updates=True)  # Скипает все новые сообщения
+    await bot.delete_webhook(
+        drop_pending_updates=True
+        )  # Скипает все новые сообщения
     await dp.start_polling(bot)
 
 
@@ -55,6 +63,7 @@ if __name__ == '__main__':
 или его импортировали и используют.(это если простыми словами)
 если не использовать эту конструкцию то при импорте запустится весь код
 и это может помешать или вызвать какие-то ненужные сообщения.
-(хотя в данном файле ее можно было не вставлять т.к. я буду всегда запускать его как основной)
+(хотя в данном файле ее можно было не вставлять
+ т.к. я буду всегда запускать его как основной)
 
 """
