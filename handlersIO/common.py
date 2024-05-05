@@ -21,11 +21,6 @@ class MyCallback(CallbackData, prefix="my"):
     page: Optional[int] = None
 
 
-class Callback_week(CallbackData, prefix="week"):
-    foo: str
-    value: int
-
-
 @router.message(Command(commands=["start"]))
 async def cmd_start(message: Message, state: FSMContext):
     await state.clear()

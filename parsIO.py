@@ -6,6 +6,8 @@ import locale
 from datetime import datetime
 from aiohttp import ClientSession
 
+from dannie import PASSWORD, LOGIN
+
 AUTH_LINK = 'https://dnevnik.egov66.ru/api/auth/Auth/Login'
 STDID_LINK = 'https://dnevnik.egov66.ru/api/students'
 ESTIMATE = 'https://dnevnik.egov66.ru/api/estimate'
@@ -13,11 +15,10 @@ API = 'https://dnevnik.egov66.ru/api/'
 
 
 class AISdnevnik:
-    def __init__(self, log: str = '', passw: str = '', variant: str = 'Текущая неделя', **period: dict) -> None:
+    def __init__(self, log: str = '', passw: str = '', **kwargs) -> None:
         self.login = log
         self.password = passw
-        self.variant = variant
-        self.dict_periods: dict = period
+        self.dict_periods: dict = {}
         self.periods: dict = {}
         self.periods_names: list = []
         self.status: int = 0
@@ -298,7 +299,7 @@ class AISdnevnik:
 
 
 async def main():
-    x = await AISdnevnik('DIzmestjev5f43', 't9vMzoB&Tw').select_var('Текущая неделя', page=35)
+    x = await AISdnevnik(log=LOGIN, passw=PASSWORD).select_var('Текущая неделя', page=35)
     for i in x:
         print(i)
     # print(await AISdnevnik().return_main_login())
