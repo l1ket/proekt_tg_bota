@@ -8,7 +8,7 @@ router = Router()
 
 
 @router.callback_query(F.data == "cancel")
-async def test(callback: CallbackQuery):
+async def cancell(callback: CallbackQuery):
     await callback.answer()
     await callback.message.delete()
 

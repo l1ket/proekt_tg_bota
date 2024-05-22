@@ -1,3 +1,5 @@
+import os
+
 from parsIO import AISdnevnik
 from typing import Optional
 
@@ -8,9 +10,10 @@ from handlersIO.getting_log_and_pass import get_default_credentials, \
 from aiogram import F, Router, types
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
-from aiogram.types import KeyboardButton, ReplyKeyboardMarkup, Message
+from aiogram.types import KeyboardButton, ReplyKeyboardMarkup, Message, WebAppInfo, InputFile, InputMediaDocument, FSInputFile
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
 from aiogram.filters.callback_data import CallbackData
+from aiogram.methods import SendMediaGroup
 
 router = Router()
 
@@ -66,6 +69,9 @@ async def cmd_main(message: Message, state: FSMContext):
         text="Главное меню",
         reply_markup=builder.as_markup(resize_keyboard=True)
     )
+
+
+""" Аккаунты(начало)"""
 
 
 @router.message(F.text.lower() == "аккаунты")
@@ -155,6 +161,9 @@ async def chage_main(callback: types.CallbackQuery, callback_data: MyCallback):
             )
 
 
+""" Аккаунты(конец)"""
+
+
 @router.message(F.text.lower() == "получить информацию из аис(дневника)")
 async def after_main(message: Message, state: FSMContext):
     await state.clear()
@@ -167,13 +176,28 @@ async def after_main(message: Message, state: FSMContext):
         builder = InlineKeyboardBuilder()
 
         builder.button(text="Оценки", callback_data='grades')
-        builder.button(text="Обьявления", callback_data='123')
-        builder.button(text="Домашние задания", callback_data='42')
+        builder.button(text="Обьявления", callback_data='announcements')
+        builder.button(text="Домашние задания", callback_data='homework')
+        builder.button(text="test", callback_data='test')
 
         builder.adjust(2)
         await message.answer(
             text="Выберите интересующий вас пункт:", reply_markup=builder.as_markup()
             )
+
+
+@router.callback_query(F.data == "test")
+async def test(callback: types.CallbackQuery):
+    await callback.answer()
+    await callback.message.delete()
+
+    builder = InlineKeyboardBuilder()
+    builder.button(text="Оценки", web_app=WebAppInfo(url='https://dnevnik.egov66.ru/login/'))
+
+    builder.adjust(2)
+    await callback.message.answer(
+        text="Выберите любой вариант:", reply_markup=builder.as_markup()
+        )
 
 
 @router.message(Command(commands=["cancel"]))
@@ -194,9 +218,10 @@ async def cmd_cancel(message: Message, state: FSMContext):
         reply_markup=keyboard
     )
 
+""" Домашка(начало) """
 
-@router.callback_query(F.data == "grades")
-async def test(callback: types.CallbackQuery):
+@router.callback_query(F.data == "homework")
+async def home(callback: types.CallbackQuery):
     await callback.answer()
     await callback.message.delete()
 
@@ -204,15 +229,146 @@ async def test(callback: types.CallbackQuery):
     log, pasw = await get_default_credentials(us_id)
 
     builder = InlineKeyboardBuilder()
-    periods = await AISdnevnik(log=log, passw=pasw).return_periods()
-    for i in periods.items():
-        builder.button(text=i[0],
-                       callback_data=MyCallback(foo='items', value=i[0]))
+    result = await AISdnevnik(log=log, passw=pasw).homework_info()
+    mes = result[0]
+    if result[1] != '0001-01-01':
+        builder.button(text="Предыдущий день", callback_data=MyCallback(foo='works', value=result[1]))
+    else:
+        builder.button(text="Конец", callback_data="0")
+    
+    builder.button(text="Назад", callback_data='grades')
 
-    builder.adjust(2)
-    await callback.message.answer(
-        text="Выберите любой вариант:", reply_markup=builder.as_markup()
+    if result[2] != '0001-01-01':
+        builder.button(text="Следующий день", callback_data=MyCallback(foo='works', value=result[2]))
+    else:
+        builder.button(text="Конец", callback_data="0")      
+    await callback.message.answer(text=mes, reply_markup=builder.as_markup())
+
+
+@router.callback_query(MyCallback.filter(F.foo == 'works'))
+async def childrens(callback: types.CallbackQuery, callback_data: MyCallback):
+    await callback.answer()
+    await callback.message.delete()
+
+    us_id = callback.from_user.id
+    log, pasw = await get_default_credentials(us_id)
+
+    builder = InlineKeyboardBuilder()
+    result = await AISdnevnik(log=log, passw=pasw).homework_info(date=callback_data.value)
+    mes = result[0]
+    if result[1] != '0001-01-01':
+        builder.button(text="Предыдущий день", callback_data=MyCallback(foo='works', value=result[1]))
+    else:
+        builder.button(text="Конец", callback_data="0")
+    
+    builder.button(text="Назад", callback_data='grades')
+
+    if result[2] != '0001-01-01':
+        builder.button(text="Следующий день", callback_data=MyCallback(foo='works', value=result[2]))
+    else:
+        builder.button(text="Конец", callback_data="0")      
+    await callback.message.answer(text=mes, reply_markup=builder.as_markup())
+
+""" Домашка(конец) """
+
+
+@router.callback_query(F.data == "announcements")
+async def home(callback: types.CallbackQuery):
+    await callback.answer()
+    await callback.message.delete()
+
+    us_id = callback.from_user.id
+    log, pasw = await get_default_credentials(us_id)
+
+    builder = InlineKeyboardBuilder()
+    result = await AISdnevnik(log=log, passw=pasw).announcements()
+    
+    builder.button(text="Назад", callback_data='grades')
+    try:
+        await callback.message.answer(text=result[0], reply_markup=builder.as_markup())
+        if result[1] is not None:
+            for i in result[1]:
+                file = FSInputFile(i)
+                await callback.message.answer_document(document=file)
+    except Exception as e:
+        print(e)
+        await callback.message.answer(text='Ошибка', reply_markup=builder.as_markup())
+    finally:
+        try:
+            for i in result[1]:
+                os.remove(i)
+        except Exception as e:
+            pass
+
+
+@router.callback_query(F.data == "grades")
+async def grades(callback: types.CallbackQuery):
+    await callback.answer()
+    await callback.message.delete()
+
+    us_id = callback.from_user.id
+    log, pasw = await get_default_credentials(us_id)
+
+    builder = InlineKeyboardBuilder()
+    result = await AISdnevnik(log=log, passw=pasw).return_periods()
+    if isinstance(result, dict):
+        for i in result.items():
+            builder.button(text=i[0],
+                        callback_data=MyCallback(foo='items', value=i[0]))
+
+        builder.adjust(2)
+        await callback.message.answer(
+            text="Выберите любой вариант:", reply_markup=builder.as_markup()
+            )
+    elif isinstance(result, tuple):
+        periods = result[0]
+        text = result[1]
+
+        for key, value in periods.items():
+            builder.button(text=key,
+                        callback_data=MyCallback(foo='children', value=value))
+        builder.adjust(2)
+
+        await callback.message.answer(
+            text=text, reply_markup=builder.as_markup()
         )
+
+
+@router.callback_query(MyCallback.filter(F.foo == 'children'))
+async def childrens(callback: types.CallbackQuery, callback_data: MyCallback):
+    await callback.answer()
+    await callback.message.delete()
+
+    us_id = callback.from_user.id
+    log, pasw = await get_default_credentials(us_id)
+
+    builder = InlineKeyboardBuilder()
+    result = await AISdnevnik(log=log, passw=pasw).return_periods(children=callback_data.value)
+    if isinstance(result, dict):
+        for key, value in result.items():
+            builder.button(text=key,
+                        callback_data=MyCallback(foo='items', value=key))
+
+        builder.adjust(2)
+        await callback.message.answer(
+            text="Выберите любой вариант:", reply_markup=builder.as_markup()
+            )
+
+    elif isinstance(result, tuple):
+        periods = result[0]
+        text = result[1]
+
+        for key, value in periods.items():
+            builder.button(text=key,
+                        callback_data=MyCallback(foo='children', value=value))
+        builder.adjust(2)
+
+        await callback.message.answer(
+            text=text, reply_markup=builder.as_markup()
+        )
+
+
+""" Дни недели"""
 
 
 @router.callback_query(MyCallback.filter(F.foo == 'items'))

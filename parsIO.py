@@ -1,12 +1,12 @@
 import asyncio
 import json
-import sqlite3
+import os
 import locale
 
 from datetime import datetime
 from aiohttp import ClientSession
 
-from dannie import PASSWORD, LOGIN
+from dannie import PASSWORD, LOGIN, PASSWORD_P, LOGIN_P
 
 AUTH_LINK = 'https://dnevnik.egov66.ru/api/auth/Auth/Login'
 STDID_LINK = 'https://dnevnik.egov66.ru/api/students'
@@ -29,6 +29,7 @@ class AISdnevnik:
         self.dict_subjects = {}
         self.parent = False
         self.check = False
+        self.kids: dict = {}
 
     async def check_acc(self) -> bool:
         data = json.dumps(
@@ -52,8 +53,6 @@ class AISdnevnik:
                 await session.close()
                 return True
             else:
-                # print('ne norm')
-                # print(self.login, self.password)
                 self.status = status
                 await session.close()
                 return False
@@ -77,33 +76,56 @@ class AISdnevnik:
                     else:
                         return False
 
-    async def get_info(self) -> bool:
+    async def get_info(self, **kwargs) -> bool:
         if await self.check_acc():
             headers = {'Authorization': f'Bearer {self.cook}'}
             async with ClientSession() as session:
+                if 'children' not in kwargs:
 
-                id_search = await session.get(STDID_LINK, headers=headers)
-                responce = await id_search.json()
-                self.parent = responce['isParent']
-                self.stid = responce['students'][0]['id']
+                    id_search = await session.get(STDID_LINK, headers=headers)
+                    responce = await id_search.json()
+                    self.parent = responce['isParent']
+                    students: list = responce['students']
+                    if self.parent:
+                        for student in students:
+                            self.kids[student['firstName']] = student['id']
+                        return True
 
-                year_search = await session.get(f'{ESTIMATE}/years?studentId={self.stid}', headers=headers)
-                years = await year_search.json()
-                self.year = years['currentYear']['id']
+                    else:
+                        self.stid = responce['students'][0]['id']
+                        year_search = await session.get(f'{ESTIMATE}/years?studentId={self.stid}', headers=headers)
+                        years = await year_search.json()
+                        self.year = years['currentYear']['id']
 
-                class_id = await session.get(f'{API}classes?studentId={self.stid}&schoolYear={self.year}', headers=headers)
-                clas = await class_id.json()
-                self.class_id = clas['currentClass']['value']
+                        class_id = await session.get(f'{API}classes?studentId={self.stid}&schoolYear={self.year}', headers=headers)
+                        clas = await class_id.json()
+                        self.class_id = clas['currentClass']['value']
 
-                periods = await session.get(f'{ESTIMATE}/periods?schoolYear={self.year}&classId={self.class_id}&studentId={self.stid}', headers=headers)
-                period = await periods.json()
-                for i in period['periods']:
-                    self.periods_names.append(i['name'])
-                    self.dict_periods[i['name']] = i['id']
-                    self.periods[i['id']] = i['name']
-                return True
-        else:
-            pass
+                        periods = await session.get(f'{ESTIMATE}/periods?schoolYear={self.year}&classId={self.class_id}&studentId={self.stid}', headers=headers)
+                        period = await periods.json()
+                        for i in period['periods']:
+                            self.periods_names.append(i['name'])
+                            self.dict_periods[i['name']] = i['id']
+                            self.periods[i['id']] = i['name']
+                        return True
+
+                else:
+                    self.stid = kwargs['children']
+                    year_search = await session.get(f'{ESTIMATE}/years?studentId={self.stid}', headers=headers)
+                    years = await year_search.json()
+                    self.year = years['currentYear']['id']
+
+                    class_id = await session.get(f'{API}classes?studentId={self.stid}&schoolYear={self.year}', headers=headers)
+                    clas = await class_id.json()
+                    self.class_id = clas['currentClass']['value']
+
+                    periods = await session.get(f'{ESTIMATE}/periods?schoolYear={self.year}&classId={self.class_id}&studentId={self.stid}', headers=headers)
+                    period = await periods.json()
+                    for i in period['periods']:
+                        self.periods_names.append(i['name'])
+                        self.dict_periods[i['name']] = i['id']
+                        self.periods[i['id']] = i['name']
+                    return True
 
     async def select_var(self, period, **kwargs) -> str | tuple[str, bool, bool, int]:
         if await self.check_cook():
@@ -268,9 +290,19 @@ class AISdnevnik:
                                     mes += '\n'
                             return mes, next_page, previous_page, page
 
-    async def return_periods(self) -> dict:
-        if await self.get_info():
+    async def return_periods(self, **kwargs) -> dict | tuple[dict, str]:
+        if 'children' in kwargs:
+            children = kwargs['children']
+            await self.get_info(children=children)
             return self.dict_periods
+        else:
+            await self.get_info()
+            if self.parent is False:
+                return self.dict_periods
+            else:
+                mes = 'Аккаунт отмечен как родительский.\n' \
+                    'Выберите профиль ребенка:'
+                return self.kids, mes
 
     async def accs_info(self) -> str:
         if await self.check_cook():
@@ -286,23 +318,92 @@ class AISdnevnik:
                     lastName = stud_inf[0]['lastName']
                     mes = f'{first_name} {lastName}'
                     return mes
+                else:
+                    mes = 'Аккаунт родителя.'
+                    return mes
 
-    async def return_main_login(user_id) -> list:
-        ids = []
-        connection = sqlite3.connect('accs.db')
-        cursor = connection.cursor()
-        cursor.execute('SELECT user_id FROM Users')
-        results = cursor.fetchall()
-        for i in results:
-            ids.append(i[0])
-        return ids
+    async def homework_info(self, **kwargs) -> tuple[str, str, str]:
+        if await self.check_cook():
+            headers = {'Authorization': f'Bearer {self.cook}'}
+            async with ClientSession() as session:
+
+                mes = ''
+                if 'date' in kwargs:
+                    date_today = kwargs['date']
+                    homework = await session.get(f'{API}homework?date={date_today}&studentId={self.stid}', headers=headers)
+                    homework_j = await homework.json()
+                else:
+                    date_today = await self.date()
+                    homework = await session.get(f'{API}homework?date={date_today}&studentId={self.stid}', headers=headers)
+                    homework_j = await homework.json()
+
+                mes += f'Дз на: 🗓{date_today}\n\n'
+                next_date = homework_j['pagination']['nextDate']
+                previous_date = homework_j['pagination']['previousDate']
+
+                homeworks = homework_j['homeworks']
+                for work in homeworks:
+                    les_name = work['lessonName']
+                    description = work['description']
+                    mes += f'📝{les_name}\n{description}\n\n'
+                return mes, previous_date, next_date
+            
+    async def announcements(self) -> tuple[str, str | None]:
+        if await self.check_cook():
+            headers = {'Authorization': f'Bearer {self.cook}'}
+            async with ClientSession() as session:
+
+                mes = 'Для удобства показаны только последние 5 объявлений\n\n'
+                announcements = await session.get(f'{API}announcements?studentId={self.stid}', headers=headers)
+                announcements_j = await announcements.json()
+                ann = announcements_j['announcements']
+
+                for a in range(0, 5):
+                    title = ann[a]['title']
+                    description = ann[a]['description']
+
+                    if ann[a]['files'] is not []:
+                        file = ann[a]['files']
+                        for i in file:
+                            file_id = i['id']
+                            file_name = i['name']
+
+                    save_paths = []
+                    current_dir = os.getcwd()
+                    save_path = os.path.join(current_dir, file_name)
+
+                    author = ann[a]['author']
+                    author_fio = author['name']
+                    firs_name = author_fio['firstName']
+                    lastName = author_fio['lastName']
+                    surName = author_fio['surName']
+
+                    mes += f'👩‍🏫{lastName} {firs_name} {surName}\n\n📌{title}\n{description}\n'
+                    mes += f'Файлы: {file_name}\n\n'
+                    file_d = await session.get(f'{API}announcements/files/{file_id}', headers=headers)
+                    with open(save_path, 'wb') as f:
+                        while True:
+                            chunk = await file_d.content.read(1024)
+                            if not chunk:
+                                break
+                            f.write(chunk)
+                    save_paths.append(save_path)
+                return mes, save_paths
+
+
+    async def date(self) -> str:
+        today = datetime.today()
+        formatted_date = today.strftime('%Y-%m-%d')
+        return formatted_date
 
 
 async def main():
-    x = await AISdnevnik(log=LOGIN, passw=PASSWORD).select_var('Текущая неделя', page=35)
-    for i in x:
-        print(i)
-    # print(await AISdnevnik().return_main_login())
+    x = await AISdnevnik(log=LOGIN, passw=PASSWORD).announcements()
+    print(x)
+    # for i in x.items():
+    #     print(i)
+    # print(a)
+    # print(await AISdnevnik().date())
 
 
 if __name__ == '__main__':
