@@ -10,10 +10,10 @@ from handlersIO.getting_log_and_pass import get_default_credentials, \
 from aiogram import F, Router, types
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
-from aiogram.types import KeyboardButton, ReplyKeyboardMarkup, Message, WebAppInfo, InputFile, InputMediaDocument, FSInputFile
+from aiogram.types import KeyboardButton, ReplyKeyboardMarkup, Message, WebAppInfo, FSInputFile
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
 from aiogram.filters.callback_data import CallbackData
-from aiogram.methods import SendMediaGroup
+
 
 router = Router()
 
